@@ -13,7 +13,7 @@
 - name: "Gather the package facts"
   ansible.builtin.package_facts:
     manager: auto
-  when: ansible_facts.packages is not defined
+  when: ansible_facts['packages'] is not defined
 
 # Instructions from https://duplicati.readthedocs.io/en/latest/02-installation/#prerequisites
 
