@@ -100,6 +100,33 @@
     - ansible_facts['os_family'] == 'Debian'
     - '"duplicati" not in ansible_facts.packages'
 
+- name: "Check for configuration file to import"
+  ansible.builtin.stat:
+    path: "configs/{{ ansible_hostname }}-duplicati-config.json"
+  delegate_to: localhost
+  register: config_file
+
+- name: "Copy configuration file to /tmp"
+  ansible.builtin.copy:
+    src: "configs/{{ ansible_hostname }}-duplicati-config.json"
+    dest: "/tmp/{{ ansible_hostname }}-duplicati-config.json"
+    owner: root
+    group: root
+    mode: '0640'
+  when: config_file.stat.exists == True
+
+- name: "Import existing configuration file"
+  ansible.builtin.shell: ConfigurationImporter.exe /tmp/{{ ansible_hostname }}-duplicati-config.json --import-metadata=true --server-datafolder=/root/.config/Duplicati/
+  args:
+    chdir: /usr/lib/duplicati/
+    executable: mono
+  when: config_file.stat.exists == True
+
+- name: "Delete configuration file from /tmp"
+  ansible.builtin.file:
+    path: "/tmp/{{ ansible_hostname }}-duplicati-config.json"
+  when: config_file.stat.exists == True
+
 - name: "Start application daemon"
   ansible.builtin.service:
     name: "duplicati.service"
