@@ -135,3 +135,6 @@
     name: "duplicati.service"
     enabled: yes
     state: started
+  when:
+    - installed is defined
+    - installed.changed
