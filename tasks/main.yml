@@ -1,0 +1,95 @@
+---
+# tasks file for ansible-role-duplicati
+
+- name: "Include OS-specific variables"
+  include_vars: "{{ ansible_os_family }}.yaml"
+
+- name: "Gather the package facts"
+  ansible.builtin.package_facts:
+    manager: auto
+  when: ansible_facts.packages is not defined
+
+# Instructions from https://duplicati.readthedocs.io/en/latest/02-installation/#prerequisites
+
+- name: "Import Package Signing key (RHEL)"
+  ansible.builtin.rpm_key:
+    key: "http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x{{ package_key }}"
+    state: present
+  when: ansible_facts['os_family'] == 'RedHat'
+
+- name: "Import Package Signing key (Debian)"
+  ansible.builtin.apt_key:
+    keyserver: keyserver.ubuntu.com
+    id: "{{ package_key }}"
+    state: present
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: "Add Mono Repository into sources list (RHEL)"
+  ansible.builtin.yum_repository:
+    name: mono-official-stable
+    description: Mono Official (stable) repo
+    baseurl: "http://download.mono-project.com/repo/centos{{ ansible_distribution_major_version }}-stable.repo"
+    file: mono-official-stable
+    mode: 0640
+    state: present
+  when: ansible_facts['os_family'] == 'RedHat'
+
+- name: "Add Mono Repository into sources list (Debian)"
+  ansible.builtin.apt_repository:
+    repo: "deb https://download.mono-project.com/repo/ubuntu stable-{{ ansible_distribution_release }} main"
+    filename: mono-official-stable
+    mode: 0640
+    state: present
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: "Install required packages, if not already installed"
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ packages }}"
+  when: item|string not in ansible_facts.packages
+
+- name: "Create software directory under root homedir, if it does not exist"
+  ansible.builtin.file:
+    path: "/root/software/duplicati/"
+    state: directory
+
+- name: "Check if installer package already exist"
+  ansible.builtin.stat:
+    path: "/root/software/duplicati/{{ package_name }}"
+  register: package
+
+- name: "Download installer package from local repository"
+  ansible.builtin.get_url:
+    url: "{{ software_url }}/{{ package_name }}"
+    dest: "/root/software/duplicati/"
+    #validate_certs: no
+    mode: 0774
+  when: package.stat.exists != True
+
+- name: "Install package (RHEL - yum)"
+  ansible.builtin.yum:
+    name: "/root/software/duplicati/{{ package_name }}"
+    state: present
+  when:
+    - ansible_facts['os_family'] == 'RedHat'
+    - ansible_facts['distribution_major_version'] <= '7'
+    - '"duplicati" not in ansible_facts.packages'
+
+- name: "Install package (RHEL - dnf)"
+  ansible.builtin.dnf:
+    name: "/root/software/duplicati/{{ package_name }}"
+    state: present
+    disable_gpg_check: yes
+  when:
+    - ansible_facts['os_family'] == 'RedHat'
+    - ansible_facts['distribution_major_version'] >= '8'
+    - '"duplicati" not in ansible_facts.packages'
+
+- name: "Install package (Debian)"
+  ansible.builtin.apt:
+    deb: "/root/software/duplicati/{{ package_name }}"
+    state: present
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - '"duplicati" not in ansible_facts.packages'

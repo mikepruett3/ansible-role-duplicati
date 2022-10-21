@@ -1,0 +1,15 @@
+---
+# Debian vars file for ansible-role-duplicati
+
+packages:
+  - mono-devel
+  - gtk-sharp2
+  - libappindicator0.1-cil
+  - libmono-2.0-1
+  - apt-transport-https
+  - nano
+  - git-core
+  - software-properties-common
+  - dirmngr
+
+package_name: "duplicati_2.0.6.3-1_all.deb"
