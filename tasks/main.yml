@@ -69,7 +69,6 @@
   ansible.builtin.get_url:
     url: "{{ software_url }}/{{ package_name }}"
     dest: "/root/software/duplicati/"
-    #validate_certs: no
     mode: 0774
   when: package.stat.exists != True
 
@@ -87,7 +86,6 @@
   ansible.builtin.dnf:
     name: "/root/software/duplicati/{{ package_name }}"
     state: present
-    disable_gpg_check: yes
   register: installed
   when:
     - ansible_facts['os_family'] == 'RedHat'
@@ -115,7 +113,7 @@
     dest: "/tmp/{{ ansible_hostname }}-duplicati-config.json"
     owner: root
     group: root
-    mode: '0640'
+    mode: 0640
   when: config_file.stat.exists == True
 
 - name: "Import existing configuration file"
