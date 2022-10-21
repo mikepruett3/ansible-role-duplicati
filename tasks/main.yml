@@ -4,6 +4,12 @@
 - name: "Include OS-specific variables"
   include_vars: "{{ ansible_os_family }}.yaml"
 
+- name: "Install python-apt, if not already installed (Debian)"
+  ansible.builtin.package:
+    name: "python-apt"
+    state: present
+  when: ansible_facts['os_family'] == 'Debian'
+
 - name: "Gather the package facts"
   ansible.builtin.package_facts:
     manager: auto
